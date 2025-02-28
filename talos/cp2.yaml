@@ -4,6 +4,6 @@ machine:
     interfaces:
       - interface: ens18
         addresses:
-          - 10.0.0.62/24
+          - 10.0.0.62
         vip:
-          ip: 10.0.0.60/24
+          ip: 10.0.0.60
