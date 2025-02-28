@@ -1,9 +1,9 @@
 machine:
   network:
-    hostname: tal-cp-1
+    hostname: tal-cp-2
     interfaces:
       - interface: ens18
         addresses:
-          - 10.0.0.61/24
+          - 10.0.0.62/24
         vip:
           ip: 10.0.0.60/24
