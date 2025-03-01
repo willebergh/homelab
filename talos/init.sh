@@ -6,12 +6,25 @@ TRASH="/dev/null"
 
 TALOS_CONF_DIR="conf"
 TALOS_SECRETS="${TALOS_CONF_DIR}/secrets.yaml"
+TALOS_CONFIG="${TALOS_CONF_DIR}/talosconfig"
 
 TALOS_CONTROLPLANE="${TALOS_CONF_DIR}/controlplane.yaml"
 TALOS_WORKER="${TALOS_CONF_DIR}/worker.yaml"
 
 CLUSTER_NAME="r1"
 CLUSTER_ENDPOINT="https://10.0.0.60:6443"
+
+declare -a CONTROLPLANE_IPS=(
+  "10.0.0.61"
+  "10.0.0.62"
+  "10.0.0.63"
+)
+
+declare -a WORKER_IPS=(
+  "10.0.0.64"
+  "10.0.0.65"
+)
+
 
 if [ ! -e $TALOS_CONF_DIR ]; then
     echo "Cluster conf dir not found, creating..."
@@ -32,15 +45,43 @@ talosctl gen config $CLUSTER_NAME $CLUSTER_ENDPOINT \
   --install-image factory.talos.dev/installer/ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515:v1.9.2 \
   --with-secrets $TALOS_SECRETS \
   --force \
-  --output $TALOS_CONF_DIR > $TRASH
+  --output $TALOS_CONF_DIR \
+  > $TRASH
 
 echo "Talos conf completed boss!"
 
-for i in {1..3}; do
-  echo "Creating machine patch for: tal-cp-${i}"
+
+for (( i=0; i<${#CONTROLPLANE_IPS[@]}; i++ )); do
+  ADDRESS="${CONTROLPLANE_IPS[$i]}"
+  
+  CP_INDEX=$((i+1))
+  CP_FILENAME="cp${CP_INDEX}.yaml"
+
+  echo "Creating machine patch for: ${ADDRESS}"
   talosctl machineconfig patch \
     $TALOS_CONTROLPLANE \
-    --patch @cp${i}.yaml \
-    --output "${TALOS_CONF_DIR}/cp${i}-.yaml" \
+    --patch "@${CP_FILENAME}" \
+    --output "${TALOS_CONF_DIR}/${CP_FILENAME}" \
     > $TRASH
+
+  echo "Generated machine config from patch"
+  echo "Applying new config to ${ADDRESS} in 5 sec...";
+  sleep 5
+
+  talosctl apply-config \
+      --insecure \
+      --nodes $ADDRESS \
+      --file "${TALOS_CONF_DIR}/${CP_FILENAME}" \
+      > $TRASH
 done
+
+
+JOINED_CP_IPS="$(IFS=" "; echo "${CONTROLPLANE_IPS[*]}")"
+talosctl config endpoint $JOINED_CP_IPS \
+  --talosconfig=$TALOS_CONFIG
+
+# CONTROLPLANE_ONE=${CONTROLPLANE_IPS[0]}
+# talosctl config node $CONTROLPLANE_ONE \
+#   --talosconfig=$TALOS_CONFIG
+
+# talosctl bootstrap --nodes $CONTROLPLANE_ONE
