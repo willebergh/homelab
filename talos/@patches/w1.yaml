@@ -1,0 +1,7 @@
+machine:
+  network:
+    hostname: tal-w-1
+    interfaces:
+      - deviceSelector:
+          physical: true
+        dhcp: true

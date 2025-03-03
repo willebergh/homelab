@@ -60,7 +60,7 @@ for (( i=0; i<${#CONTROLPLANE_IPS[@]}; i++ )); do
   echo "Creating machine patch for: ${ADDRESS}"
   talosctl machineconfig patch \
     $TALOS_CONTROLPLANE \
-    --patch "@${CP_FILENAME}" \
+    --patch "@patches/${CP_FILENAME}" \
     --output "${TALOS_CONF_DIR}/${CP_FILENAME}" \
     > $TRASH
 
@@ -77,11 +77,20 @@ done
 
 
 JOINED_CP_IPS="$(IFS=" "; echo "${CONTROLPLANE_IPS[*]}")"
-talosctl config endpoint $JOINED_CP_IPS \
+CONTROLPLANE_ONE=${CONTROLPLANE_IPS[0]}
+
+talosctl config endpoint $CONTROLPLANE_ONE \
   --talosconfig=$TALOS_CONFIG
 
-# CONTROLPLANE_ONE=${CONTROLPLANE_IPS[0]}
-# talosctl config node $CONTROLPLANE_ONE \
-#   --talosconfig=$TALOS_CONFIG
+talosctl config node $CONTROLPLANE_ONE \
+  --talosconfig=$TALOS_CONFIG
 
-# talosctl bootstrap --nodes $CONTROLPLANE_ONE
+talosctl bootstrap  \
+  --nodes $CONTROLPLANE_ONE \
+  --endpoints $CONTROLPLANE_ONE \
+  --talosconfig=./conf/talosconfig
+
+
+
+  # talosconfig apply-config --nodes 10.0.0.64 --file ./conf/worker.yaml --talosconfig=./conf/talosconfig
+  # talosctl machineconfig patch ./conf/worker.yaml --patch @w2.yaml --output ./conf/w2.yaml
